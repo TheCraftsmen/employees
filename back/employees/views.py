@@ -7,8 +7,15 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 EXTERNAL_URL = 'https://rfy56yfcwk.execute-api.us-west-1.amazonaws.com/bigcorp/employees'
+
+departaments = {item['id']:item for item in settings.DEPARTAMENTS}
+offices = {item['id']:item for item in settings.OFFICES}
+
+class EmployeesThrottle(AnonRateThrottle):
+    scope = 'employees'
 
 
 def departaments(request):
@@ -21,26 +28,32 @@ def offices(request):
 
 class EmployeesViewSet(ListModelMixin, GenericViewSet):
 
+    throttle_classes = [EmployeesThrottle]
+
     def get_queryset(self):
         return None
 
     def list(self, request, pk=None, *args, **kwargs):
         limit = self.request.query_params.get('limit', 100)
-        offset = self.request.query_params.get('offset', None)
+        offset = self.request.query_params.get('offset', 0)
 
-        url = f'{EXTERNAL_URL}?limit={limit}'
-        if offset:
-            url = f'{url}&offset={offset}'
+        url = f'{EXTERNAL_URL}?limit={limit}&offset={offset}'
 
-        response = requests.get(url)
-        if response.status_code == 200:
+        employees = cache.get(f'employees_{limit}_{offset}')
+        if not employees:
+            response = requests.get(url)
+            if response.status_code != 200:
+                employees = []
+
             employees = response.json()
-        else:
-            employees = []
+            cache.set(
+                f'employees_{limit}_{offset}',
+                employees, 60 * 60
+            )
+
         return Response(employees, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None, *args, **kwargs):
-        print(pk, "please")
         employee = cache.get(f'employee_{pk}')
         if not employee:
             response = requests.get(f'{EXTERNAL_URL}?id={pk}' )
