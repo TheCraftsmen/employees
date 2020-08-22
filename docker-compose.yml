@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  web:
+    build: ./back
+    volumes:
+      - ./back:/code
+    ports:
+      - "8000:8000"
+    command: python3 manage.py runserver 0.0.0.0:8000
+  front:
+    build: ./front
+    command: npm run dev
+    volumes:
+      - ./front:/src
+      - frontnodemodules:/src/node_modules
+    ports:
+      - 3000:3000
+volumes:
+  frontnodemodules:
