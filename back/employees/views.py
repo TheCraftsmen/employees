@@ -73,10 +73,13 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
 
         managers = cache.get(managers_url)
         if not managers:
-            response = requests.get(managers_url)
-            if response.status_code == 200:
-                managers = response.json()
-                cache.set(managers_url, managers, (60 * 60) * 24)
+            try:
+                response = requests.get(managers_url)
+                if response.status_code == 200:
+                    managers = response.json()
+                    cache.set(managers_url, managers, (60 * 60) * 24)
+            except Exception as e:
+                return {}
 
         managers = {item['id']:item for item in managers}
         return managers
@@ -92,15 +95,19 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
 
         employees = cache.get(f'employees_{limit}_{offset}')
         if not employees:
-            response = requests.get(url)
-            if response.status_code != 200:
-                employees = []
 
-            employees = response.json()
-            cache.set(
-                f'employees_{limit}_{offset}',
-                employees, (60 * 60) * 24
-            )
+            try:
+                response = requests.get(url)
+                if response.status_code != 200:
+                    employees = []
+
+                employees = response.json()
+                cache.set(
+                    f'employees_{limit}_{offset}',
+                    employees, (60 * 60) * 24
+                )
+            except Exception as e:
+                employees = []
 
         for elem in expand:
             subgroups = elem.split('.')
@@ -123,11 +130,12 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
     def retrieve(self, request, pk=None, *args, **kwargs):
         employee = cache.get(f'employee_{pk}')
         if not employee:
-            response = requests.get(f'{EXTERNAL_URL}?id={pk}')
-            if response.status_code == 200:
+            try:
+                response = requests.get(f'{EXTERNAL_URL}?id={pk}')
+                if response.status_code != 200:
+                    employee = {}
                 employee = response.json()
                 cache.set(f'employee_{pk}', employee, (60 * 60) * 24)
-            else:
-                print(response.json())
+            except Exception as e:
                 employee = {}
         return Response(employee, status=status.HTTP_200_OK)
