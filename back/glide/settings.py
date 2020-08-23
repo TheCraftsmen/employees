@@ -137,8 +137,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-with open(os.path.join(BASE_DIR, 'departments.json')) as departaments:
-    DEPARTAMENTS = json.load(departaments)
+with open(os.path.join(BASE_DIR, 'departments.json')) as departments:
+    DEPARTMENTS = json.load(departments)
 
 with open(os.path.join(BASE_DIR, 'offices.json')) as offices:
     OFFICES = json.load(offices)
