@@ -21,41 +21,6 @@ class EmployeesThrottle(AnonRateThrottle):
     scope = 'employees'
 
 
-def expander(employee_attr, subgroups, employee):
-    if employee_attr in ['department', 'superdepartment']:
-        attr_dict = departaments
-    else:
-        attr_dict = offices
-    if employee_attr in employee:
-        attr_key = employee[employee_attr]
-        if isinstance(attr_key, int) and attr_key in attr_dict:
-            if subgroups:
-                new_subgroups = subgroups.copy()
-                subgroup = new_subgroups.pop(0)
-                new_data = attr_dict[employee[employee_attr]]
-                expand_data = expander(subgroup, new_subgroups, new_data)
-            employee[employee_attr] = attr_dict[employee[employee_attr]]
-    return employee
-
-
-def manager_expander(managers, subgroups, employee):
-    if 'manager' in employee:
-        attr_key = employee['manager']
-        if isinstance(attr_key, int) and attr_key in managers:
-            if subgroups:
-                new_subgroups = subgroups.copy()
-                subgroup = new_subgroups.pop(0)
-                new_data = managers[employee['manager']]
-                print("pas pasa pas")
-                if subgroup == 'manager':
-                    print("entra en el manager")
-                    expand_data = manager_expander(managers, new_subgroups, new_data)
-                else:
-                    expand_data = expander(subgroup, new_subgroups, new_data)
-            employee['manager'] = managers[employee['manager']]
-    return employee
-
-
 class EmployeesViewSet(ListModelMixin, GenericViewSet):
 
     throttle_classes = [EmployeesThrottle]
@@ -63,7 +28,7 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
     def get_queryset(self):
         return None
 
-    def get_managers_list(self, employees):
+    def set_managers_list(self, employees):
         ids_managers = list(set(map(lambda x: x['manager'], employees)))
 
         managers_url = f'{EXTERNAL_URL}?'
@@ -82,17 +47,34 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
                 return {}
 
         managers = {item['id']:item for item in managers}
-        return managers
+        self.managers = managers
 
-    def list(self, request, pk=None, *args, **kwargs):
-        limit = self.request.query_params.get('limit', 100)
-        offset = self.request.query_params.get('offset', 0)
-        expand = self.request.query_params.get('expand')
-        if expand:
-            expand = expand.split(',')
+    def get_attr_dict(self, employee_attr):
+        if employee_attr in ['department', 'superdepartment']:
+            attr_dict = departaments
+        elif employee_attr in ['manager']:
+            attr_dict = self.managers
+        elif employee_attr in ['office']:
+            attr_dict = offices
+        else:
+            attr_dict = {}
+        return attr_dict
 
+    def expander(self, employee_attr, subgroups, employee):
+        attr_dict = self.get_attr_dict(employee_attr)
+        if employee_attr in employee:
+            attr_key = employee[employee_attr]
+            if isinstance(attr_key, int) and attr_key in attr_dict:
+                if subgroups:
+                    new_subgroups = subgroups.copy()
+                    subgroup = new_subgroups.pop(0)
+                    new_data = attr_dict[employee[employee_attr]]
+                    expand_data = self.expander(subgroup, new_subgroups, new_data)
+                employee[employee_attr] = attr_dict[employee[employee_attr]]
+        return employee
+
+    def get_employees(self, limit, offset):
         url = f'{EXTERNAL_URL}?limit={limit}&offset={offset}'
-
         employees = cache.get(f'employees_{limit}_{offset}')
         if not employees:
 
@@ -108,22 +90,29 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
                 )
             except Exception as e:
                 employees = []
+        return employees
+
+    def list(self, request, pk=None, *args, **kwargs):
+        limit = self.request.query_params.get('limit', 100)
+        offset = self.request.query_params.get('offset', 0)
+        expand = self.request.query_params.get('expand')
+        if expand:
+            expand = expand.split(',')
+
+        employees = self.get_employees(limit, offset)
 
         for elem in expand:
             subgroups = elem.split('.')
-            # ir sacando el element a medida que actualizo
-            if subgroups:
+            if not subgroups:
+                continue
 
-                subgroup = subgroups.pop(0)
-                if subgroup == 'manager':
-                    managers = self.get_managers_list(employees)
-                    employees = list(map(partial(
-                        manager_expander, managers, subgroups), employees
-                    ))
-                else:
-                    employees = list(
-                        map(partial(expander, subgroup, subgroups), employees)
-                    )
+            subgroup = subgroups.pop(0)
+            if subgroup == 'manager':
+                self.set_managers_list(employees)
+
+            employees = list(map(partial(
+                self.expander, subgroup, subgroups), employees
+            ))
 
         return Response(employees, status=status.HTTP_200_OK)
 
