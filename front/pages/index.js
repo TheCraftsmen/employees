@@ -1,6 +1,5 @@
 import React, { useEffect, useState} from 'react';
 import { makeStyles } from '@material-ui/core/styles';
-import styles from '../styles/Home.module.css';
 import Container from '@material-ui/core/Container';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
