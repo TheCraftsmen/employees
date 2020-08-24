@@ -43,6 +43,8 @@ export default function Home() {
         departments_selected: false,
         offices_selected: false,
         employees_selected: true,
+        pageSize: 10,
+        page: 0
 
     });
 
@@ -62,20 +64,44 @@ export default function Home() {
       var departments = await resp.json()
       return departments;
     }
-    var employees = fetchEmployees();
-    var offices = fetchOffices();
-    var departments = fetchDepartments();
 
-    setState((prevState) => {
-      return {
-        ...prevState,
-        employees: employees,
-        offices: offices,
-        departments: departments
-      }
-    });
+    var loadData = async () => {
+      var employees = await fetchEmployees();
+      var offices = await fetchOffices();
+      var departments = await fetchDepartments();
+
+      await setState((prevState) => {
+        return {
+          ...prevState,
+          employees: employees,
+          offices: offices,
+          departments: departments
+        }
+      });
+
+    }
+
+    loadData();
 
   }, [])
+
+  var updateEmployees = (page, pageSize) => {
+    var fetchData = async () => {
+      var offset = page * 10;
+      var resp = await fetch(`http://localhost:8000/employees/?limit=${pageSize}&offset=${offset}&expand=manager`);
+      var employees = await resp.json();
+
+      await setState((prevState) => {
+        return {
+          ...prevState,
+          employees: employees,
+          pageSize: pageSize,
+          page: page
+        }
+      });
+    }
+    fetchData();
+  }
 
   const handleSelectedItem = (item) => {
     var departments_selected = false;
@@ -97,15 +123,26 @@ export default function Home() {
       }
     });
   }
-  console.log(state.employees)
-  console.log(state.offices)
-  console.log(state.departments)
+
+  var data = [];
+  var selected = '';
+  if (state.employees_selected){
+    data = state.employees;
+    selected = 'employees';
+  } else if (state.offices_selected){
+    data = state.offices;
+    selected = 'offices';
+  } else {
+    data = state.departments;
+    selected = 'departments';
+  }
+
   return (
     <React.Fragment>
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" className={classes.title}>
-          Employees
+          Big Corp
         </Typography>
       </Toolbar>
     </AppBar>
@@ -125,7 +162,13 @@ export default function Home() {
             </List>
           </Grid>
           <Grid item md={9}>
-            <Table />
+            <Table
+              pageSize={state.pageSize}
+              page={state.page}
+              data={data}
+              selected={selected}
+              updateEmployees={updateEmployees}
+            />
           </Grid>
         </Grid>
     </Container>

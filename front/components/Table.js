@@ -7,33 +7,62 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import TablePagination from '@material-ui/core/TablePagination';
 import Paper from '@material-ui/core/Paper';
-import Row from './TableRow';
-
-function createData(name, calories, fat, carbs, protein, price) {
-  return {
-    name,
-    calories,
-    fat,
-    carbs,
-    protein,
-    price,
-    history: [
-      { date: '2020-01-05', customerId: '11091700', amount: 3 },
-      { date: '2020-01-02', customerId: 'Anonymous', amount: 1 },
-    ],
-  };
-}
-
-const rows = [
-  createData('Frozen yoghurt', 159, 6.0, 24, 4.0, 3.99),
-  createData('Ice cream sandwich', 237, 9.0, 37, 4.3, 4.99),
-  createData('Eclair', 262, 16.0, 24, 6.0, 3.79),
-  createData('Cupcake', 305, 3.7, 67, 4.3, 2.5),
-  createData('Gingerbread', 356, 16.0, 49, 3.9, 1.5),
-];
+import EmployeesTableRow from './EmployeesTableRow';
+import OfficesTableRow from './OfficesTableRow';
+import DepartmentsTableRow from './DepartmentsTableRow';
 
 
-export default function AppTable() {
+export default function AppTable(props) {
+  const handleChangePage = (e, page) => {
+    props.updateEmployees(page, props.pageSize);
+  }
+  const handleChangeRowsPerPage = (e, size) => {
+    var pageSize = e.target.value
+    props.updateEmployees(props.page, pageSize)
+  }
+
+  const getTableRow = () => {
+    if (props.selected === 'employees'){
+      return (
+        props.data && props.data.map((row) => (
+          <EmployeesTableRow key={row.id} row={row} />
+        ))
+      )
+    } else if (props.selected === 'departments'){
+      return (
+        props.data && props.data.map((row) => (
+          <DepartmentsTableRow key={row.id} row={row} />
+        ))
+      )
+    } else {
+      return (
+        props.data && props.data.map((row) => (
+          <OfficesTableRow key={row.id} row={row} />
+        ))
+      )
+    }
+  }
+  var headers = []
+  if (props.data.length){
+    headers = Object.keys(props.data[0])
+  }
+
+  switch (props.selected) {
+    case 'employees':
+      headers = [
+        'Id', 'First',
+        'Last', 'Manager',
+        'Office','Department'
+      ];
+      break;
+    case 'offices':
+      headers = ['Id', 'City', 'Country', 'Address'];
+      break;
+    case 'departments':
+      headers = ['Id', 'Name', 'Superdepartment'];
+      break;
+  }
+
   return (
     <React.Fragment>
       <TableContainer component={Paper}>
@@ -41,29 +70,27 @@ export default function AppTable() {
           <TableHead>
             <TableRow>
               <TableCell />
-              <TableCell>Dessert (100g serving)</TableCell>
-              <TableCell align="right">Calories</TableCell>
-              <TableCell align="right">Fat&nbsp;(g)</TableCell>
-              <TableCell align="right">Carbs&nbsp;(g)</TableCell>
-              <TableCell align="right">Protein&nbsp;(g)</TableCell>
+              { headers.map((row) => (<TableCell>{row}</TableCell>)) }
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row) => (
-              <Row key={row.name} row={row} />
-            ))}
+            {getTableRow()}
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 100]}
-        component="div"
-        count={rows.length}
-        rowsPerPage={10}
-        page={1}
-        //onChangePage={handleChangePage}
-        //onChangeRowsPerPage={handleChangeRowsPerPage}
-      />
+      {
+        props.selected === 'employees' && (
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 100]}
+            component="div"
+            count={-1}
+            rowsPerPage={props.pageSize}
+            page={props.page}
+            onChangePage={handleChangePage}
+            onChangeRowsPerPage={handleChangeRowsPerPage}
+          />
+        )
+      }
     </React.Fragment>
   );
 }
