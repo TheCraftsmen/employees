@@ -49,7 +49,7 @@ export default function Row(props) {
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box margin={1}>
               <Typography variant="h6" gutterBottom component="div">
-                History
+                Manager
               </Typography>
               <Table size="small" aria-label="purchases">
                 <TableHead>
