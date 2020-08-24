@@ -6,7 +6,7 @@ from employees.views import (
 
 
 employees_router = DefaultRouter()
-# User's
+
 employees_router.register(r'employees', EmployeesViewSet, base_name='employees')
 employees_router.register(r'offices', OfficesViewSet, base_name='offices')
 employees_router.register(r'departments', DepartmentsViewSet, base_name='departments')
