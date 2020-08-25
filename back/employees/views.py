@@ -242,8 +242,6 @@ class EmployeesViewSet(ListModelMixin, GenericViewSet):
                 continue
 
             subgroup = subgroups.pop(0)
-            if subgroup == 'manager':
-                self.set_managers_list([employee])
 
             list(map(partial(
                 self.expander, subgroup, subgroups), [employee]
