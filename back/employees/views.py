@@ -6,7 +6,6 @@ from django.core.cache import cache
 from django.conf import settings
 from django.http import JsonResponse
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import ListModelMixin
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -19,7 +18,7 @@ departments = {item['id']:item for item in settings.DEPARTMENTS}
 offices = {item['id']:item for item in settings.OFFICES}
 
 
-class OfficesViewSet(ListModelMixin, GenericViewSet):
+class OfficesViewSet(GenericViewSet):
 
     def get_queryset(self):
         return None
@@ -50,7 +49,7 @@ class OfficesViewSet(ListModelMixin, GenericViewSet):
             }
         return Response(response, status=status_code)
 
-class DepartmentsViewSet(ListModelMixin, GenericViewSet):
+class DepartmentsViewSet(GenericViewSet):
 
     def get_queryset(self):
         return None
@@ -99,7 +98,7 @@ class DepartmentsViewSet(ListModelMixin, GenericViewSet):
         expand = self.get_expand_param(request)
         response = deepcopy(settings.DEPARTMENTS)
         self.response_expander(expand, response)
-        return Response(settings.DEPARTMENTS, status=status.HTTP_200_OK)
+        return Response(response, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None, *args, **kwargs):
         expand = self.get_expand_param(request)
@@ -117,7 +116,7 @@ class DepartmentsViewSet(ListModelMixin, GenericViewSet):
         return Response(response, status=status.HTTP_200_OK)
 
 
-class EmployeesViewSet(ListModelMixin, GenericViewSet):
+class EmployeesViewSet(GenericViewSet):
 
     throttle_classes = [EmployeesThrottle]
 
